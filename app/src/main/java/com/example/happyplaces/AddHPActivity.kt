@@ -1,6 +1,7 @@
 package com.example.happyplaces
 
 import android.Manifest
+import android.app.Activity
 import android.app.DatePickerDialog
 import android.app.DatePickerDialog.OnDateSetListener
 import android.content.ActivityNotFoundException
@@ -8,6 +9,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.provider.MediaStore
 import android.provider.Settings
 import android.view.View
 import android.widget.Toast
@@ -19,6 +21,7 @@ import com.karumi.dexter.MultiplePermissionsReport
 import com.karumi.dexter.PermissionToken
 import com.karumi.dexter.listener.PermissionRequest
 import com.karumi.dexter.listener.multi.MultiplePermissionsListener
+import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -27,6 +30,7 @@ class AddHPActivity : AppCompatActivity(),View.OnClickListener {
 
     private var cal=Calendar.getInstance()
     private lateinit var dateSetListener: DatePickerDialog.OnDateSetListener
+
 
     private lateinit var binding: ActivityAddHpactivityBinding
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -67,9 +71,31 @@ class AddHPActivity : AppCompatActivity(),View.OnClickListener {
                     _, which->
                     when(which){
                         0->choosePhotoFromGallery()
-                        1-> Toast.makeText(this,"Camera selection coming soon",Toast.LENGTH_SHORT).show()
+                        1->selectPhotoFromCamera()
                     }
                 }.show()
+            }
+        }
+    }
+
+    private fun selectPhotoFromCamera() {
+        Toast.makeText(this,"coming soon",Toast.LENGTH_SHORT).show()
+    }
+
+    public override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if(resultCode==Activity.RESULT_OK){
+            if(resultCode== GALLERY){
+                if(data!=null){
+                    val contentUri=data.data
+                    try {
+                        val selectedImageBitmap=MediaStore.Images.Media.getBitmap(this.contentResolver,contentUri)
+                        binding.iv_place_image.setImageBitmap(selectedImageBitmap)
+                    }catch (e:IOException){
+                        e.printStackTrace()
+                        Toast.makeText(this,"FAILED to load image from gallery",Toast.LENGTH_SHORT).show()
+                    }
+                }
             }
         }
     }
@@ -82,7 +108,8 @@ class AddHPActivity : AppCompatActivity(),View.OnClickListener {
             override fun onPermissionsChecked(report: MultiplePermissionsReport?)
             {
                 if(report!!.areAllPermissionsGranted()){
-                    Toast.makeText(this@AddHPActivity,"All permissions granted. Now you can select the image from gallery",Toast.LENGTH_SHORT).show()
+                    val galleryIntent=Intent(Intent.ACTION_PICK,MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+                    startActivityForResult(galleryIntent,GALLERY)
                 }
             }
             override fun onPermissionRationaleShouldBeShown(permissions:MutableList<PermissionRequest> , token: PermissionToken)
@@ -112,5 +139,8 @@ class AddHPActivity : AppCompatActivity(),View.OnClickListener {
         val myFormat="dd.MM.yyyy"
         val sdf=SimpleDateFormat(myFormat, Locale.getDefault())
         binding.etDate.setText(sdf.format(cal.time).toString())
+    }
+    companion object{
+        private const val GALLERY=1
     }
 }
